@@ -7,7 +7,7 @@ app.use(cors());
 app.use("/api", router);
 
 app.get("/health", (req, res) => {
-  res.send("Todo está ok");
+  res.send("I am alive");
 });
 
 app.get("*", (req, res) => {

@@ -1,6 +1,6 @@
 FROM node:16.13.0
 
-ARG BASE_DIR="backend2"
+ARG BASE_DIR="backend1"
 
 WORKDIR /app
 

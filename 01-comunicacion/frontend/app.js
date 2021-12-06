@@ -8,7 +8,7 @@ app.use("/", express.static(__dirname + "/public"));
 app.use("/api", router);
 
 app.get("/health", (req, res) => {
-  res.send("Todo está ok");
+  res.send("I am alive!");
 });
 
 app.get("*", (req, res) => {
