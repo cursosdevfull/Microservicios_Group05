@@ -1,9 +1,12 @@
 const amqp = require("amqplib");
 
-const sentMessage = async (message) => {
-  const connection = await amqp.connect(process.env.AMQP_URL);
+const sendMessage = async (message) => {
+  const connection = await amqp.connect(
+    `amqp://${process.env.HOST_RABBIT || "localhost"}`
+  );
   const channel = await connection.createChannel();
-  const exchangeName = "payment-exchange";
+
+  const exchangeName = "EXCHANGE_FANOUT";
   await channel.assertExchange(exchangeName, "fanout", { durable: true });
 
   channel.publish(exchangeName, "", Buffer.from(JSON.stringify(message)), {
@@ -11,4 +14,4 @@ const sentMessage = async (message) => {
   });
 };
 
-module.exports = sentMessage;
+module.exports = sendMessage;

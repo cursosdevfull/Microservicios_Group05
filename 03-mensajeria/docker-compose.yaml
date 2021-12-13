@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  RABBITMQ:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - net_broker
+
+  PAYMENT:
+    build:
+      context: .
+      dockerfile: payment/Dockerfile
+    image: payment_ms
+    ports:
+      - 80:3000
+    environment:
+      - PORT=3000
+      - HOST_RABBIT=RABBITMQ
+    networks:
+      - net_broker
+    depends_on:
+      - RABBITMQ
+    restart: always
+
+  INVOICES:
+    build:
+      context: .
+      dockerfile: invoices/Dockerfile
+    image: invoices_ms
+    environment:
+      - HOST_RABBIT=RABBITMQ
+    networks:
+      - net_broker
+    depends_on:
+      - RABBITMQ
+    restart: always
+
+  EMAILS:
+    build:
+      context: .
+      dockerfile: emails/Dockerfile
+    image: emails_ms
+    environment:
+      - HOST_RABBIT=RABBITMQ
+    networks:
+      - net_broker
+    depends_on:
+      - RABBITMQ
+    restart: always
+
+networks:
+  net_broker:
