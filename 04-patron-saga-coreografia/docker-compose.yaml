@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  RABBITMQ:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - net_broker
+
+  MONGO:
+    image: mongo:3.6
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root
+    volumes:
+      - mongo_host:/data/db
+    networks:
+      - net_broker
+    healthcheck:
+      test: 'mongo --eval db.getSiblingDB("admin").runCommand({ping: 1})'
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ORDER:
+    build:
+      context: .
+      dockerfile: order/Dockerfile
+    image: order_ms
+    restart: always
+    depends_on:
+      - RABBITMQ
+      - MONGO
+    ports:
+      - "8080:3000"
+    environment:
+      - MONGO_HOST=MONGO
+      - MONGO_PORT=27017
+      - MONGO_USERNAME=root
+      - MONGO_PASSWORD=root
+      - MONGO_DATABASE=order
+      - MONGO_AUTH_SOURCE=admin
+      - PORT=3000
+      - RABBIT_HOST=RABBITMQ
+    networks:
+      - net_broker
+
+volumes:
+  mongo_host:
+
+networks:
+  net_broker:

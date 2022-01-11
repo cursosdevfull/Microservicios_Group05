@@ -1,6 +1,6 @@
 export type STATUS = "PENDING" | "PROCESSING" | "DELIVERED" | "CANCELLED";
 
-export class OrderBuilder {
+export class PaymentBuilder {
   name: string;
   itemCount: number;
   transaction: string;
@@ -27,17 +27,17 @@ export class OrderBuilder {
   }
 
   build() {
-    return new OrderEntity(this);
+    return new PaymentEntity(this);
   }
 }
 
-export class OrderEntity {
+export class PaymentEntity {
   name: string;
   itemCount: number;
   transaction: string;
   status: STATUS;
 
-  constructor(obj: OrderBuilder) {
+  constructor(obj: PaymentBuilder) {
     this.name = obj.name;
     this.itemCount = obj.itemCount;
     this.transaction = obj.transaction;

@@ -8,7 +8,7 @@ export default class UseCase {
   async insert(orderEntity: OrderEntity): Promise<OrderEntity> {
     const result: OrderEntity = await this.repository.insert(orderEntity);
     this.queue.sendMessage({
-      type: "ORDER_CREATED",
+      type: "ORDER_CREATED_EVENT",
       data: result,
     });
     this.receiveMessages();
