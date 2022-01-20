@@ -9,7 +9,7 @@ export default class Operation implements Repository {
     return orderEntity;
   }
 
-  async update(transaction: number, status: string): Promise<string> {
+  async update(transaction: string, status: string): Promise<string> {
     await model.findOneAndUpdate({ transaction }, { status });
 
     return status;

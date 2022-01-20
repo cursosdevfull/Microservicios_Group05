@@ -1,21 +1,35 @@
 import RepositoryQueue from "../application/repository-queue";
 import BrokerBootstrap from "../../bootstrap/broker.bootstrap";
 import Repository from "../application/repository";
+import { PaymentBuilder, PaymentEntity } from "../domain/payment.entity";
 
 export default class OperationQueue implements RepositoryQueue {
   constructor(private operation: Repository) {}
 
   async sendMessage(message: any): Promise<void> {
     const channel = BrokerBootstrap.getChannel();
-    const queueName = "ORDER_CREATE_EVENT";
+    const queueName = "ORDER_PREPARE_EVENT";
     await channel.assertQueue(queueName, { durable: true });
     await channel.sendToQueue(queueName, Buffer.from(JSON.stringify(message)));
+  }
+
+  async sendMessageError(message: any): Promise<void> {
+    const channel = BrokerBootstrap.getChannel();
+    const messageAsString = JSON.stringify(message);
+
+    const exchangeName = "FAILED_ERROR_EXCHANGE";
+    await channel.assertExchange(exchangeName, "topic", { durable: true });
+    channel.publish(
+      exchangeName,
+      "store.order_cancelled.error",
+      Buffer.from(messageAsString)
+    );
   }
 
   async receiveMessage(): Promise<void> {
     const channel = BrokerBootstrap.getChannel();
 
-    await this.receiveMessageSuccess(channel, this.consumerSuccess.bind(this));
+    await this.receiveMessageCreated(channel, this.consumerCreated.bind(this));
     await this.receiveMessageError(channel, this.consumerError.bind(this));
     await this.receiveMessageConfirmOrder(
       channel,
@@ -23,14 +37,18 @@ export default class OperationQueue implements RepositoryQueue {
     );
   }
 
-  async receiveMessageSuccess(channel: any, callback: (message: any) => void) {
-    const queueName = "ORDER_DELIVERIED_EVENT";
+  async receiveMessageCreated(
+    channel: any,
+    callback: (message: any, isError: boolean) => void
+  ) {
+    const queueName = "BILLED_ORDER_EVENT";
+
     await channel.assertQueue(queueName, { durable: true });
 
     channel.consume(
       queueName,
       (message: any) => {
-        callback(message);
+        callback(message, false);
       },
       { noAck: false }
     );
@@ -40,9 +58,12 @@ export default class OperationQueue implements RepositoryQueue {
     const exchangeName = "FAILED_ERROR_EXCHANGE";
     await channel.assertExchange(exchangeName, "topic", { durable: true });
 
-    const routingKey = "*.order_cancelled.error";
+    const routingKeys = ["delivery.order_cancelled.error"];
     const assertQueue = await channel.assertQueue("", { exclusive: true });
-    channel.bindQueue(assertQueue.queue, exchangeName, routingKey);
+
+    for (const routingKey of routingKeys) {
+      channel.bindQueue(assertQueue.queue, exchangeName, routingKey);
+    }
 
     channel.consume(assertQueue.queue, (message: any) => callback(message), {
       noAck: false,
@@ -64,6 +85,14 @@ export default class OperationQueue implements RepositoryQueue {
     });
   }
 
+  async consumerConfirmOrder(message: any) {
+    console.log("consumerConfirmOrder", JSON.parse(message.content.toString()));
+    const messageAsJSON = JSON.parse(message.content.toString());
+    const status = "APPROVED";
+
+    await this.operation.update(messageAsJSON.transaction, status);
+  }
+
   async consumerError(message: any) {
     const messageAsJSON = JSON.parse(message.content.toString());
     const status = "CANCELLED";
@@ -71,18 +100,23 @@ export default class OperationQueue implements RepositoryQueue {
     await this.operation.update(messageAsJSON.transaction, status);
   }
 
-  async consumerSuccess(message: any) {
+  async consumerCreated(message: any) {
     const messageAsJSON = JSON.parse(message.content.toString());
-    const status = "APPROVED";
+    const status = "PENDING";
 
-    await this.operation.update(messageAsJSON.transaction, status);
-  }
+    const orderEntity = new PaymentBuilder()
+      .addName(messageAsJSON.name)
+      .addItemCount(messageAsJSON.itemCount)
+      .addTransaction(messageAsJSON.transaction)
+      .addStatus(status)
+      .build();
 
-  async consumerConfirmOrder(message: any) {
-    console.log("consumerConfirmOrder", JSON.parse(message.content.toString()));
-    const messageAsJSON = JSON.parse(message.content.toString());
-    const status = "APPROVED";
+    const response = await this.operation.insert(orderEntity);
 
-    await this.operation.update(messageAsJSON.transaction, status);
+    await this.sendMessage(response);
+    // await this.sendMessageError(response);
+
+    const channel = BrokerBootstrap.getChannel();
+    channel.ack(message);
   }
 }

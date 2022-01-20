@@ -11,10 +11,11 @@ export default class UseCase {
       type: "ORDER_CREATED_EVENT",
       data: result,
     });
-    this.receiveMessages();
 
     return result;
   }
 
-  receiveMessages() {}
+  async receiveMessage() {
+    await this.queue.receiveMessage();
+  }
 }

@@ -1,6 +1,6 @@
 FROM node:16.1-alpine3.13 as BUILD
 
-ARG BASE_DIR="payment"
+ARG BASE_DIR="store"
 
 ADD ${BASE_DIR}/package*.json /tmp/
 
@@ -16,7 +16,7 @@ RUN npm run build
 
 FROM node:16.1-alpine3.13
 
-ARG BASE_DIR="payment"
+ARG BASE_DIR="store"
 
 WORKDIR /app
 

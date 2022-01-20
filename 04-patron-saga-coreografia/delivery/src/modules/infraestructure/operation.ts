@@ -10,6 +10,7 @@ export default class Operation implements Repository {
   }
 
   async update(transaction: string, status: string): Promise<string> {
+    console.log("transaction: ", transaction);
     await model.findOneAndUpdate({ transaction }, { status });
 
     return status;
