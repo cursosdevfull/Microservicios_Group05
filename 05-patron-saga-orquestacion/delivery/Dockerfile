@@ -1,6 +1,6 @@
 FROM node:16.1-alpine3.13 as BUILD
 
-ARG BASE_DIR="orquestador"
+ARG BASE_DIR="delivery"
 
 ADD ${BASE_DIR}/package*.json /tmp/
 
@@ -16,7 +16,7 @@ RUN npm run build
 
 FROM node:16.1-alpine3.13
 
-ARG BASE_DIR="orquestador"
+ARG BASE_DIR="delivery"
 
 WORKDIR /app
 

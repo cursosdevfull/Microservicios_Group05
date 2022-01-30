@@ -129,6 +129,22 @@ services:
     networks:
       - net_broker
 
+  ORCHESTATOR:
+    container_name: orchestator
+    build:
+      context: .
+      dockerfile: orquestador/Dockerfile
+    image: orquestador_ms
+    restart: always
+    depends_on:
+      - RABBITMQ
+    ports:
+      - "8084:3004"
+    environment:
+      - PORT=3004
+      - RABBIT_HOST=RABBITMQ
+    networks:
+      - net_broker
 volumes:
   mongo_host:
 
