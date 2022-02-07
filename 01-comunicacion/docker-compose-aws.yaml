@@ -1,0 +1,50 @@
+version: "3"
+
+services:
+  frontend:
+    image: 282865065290.dkr.ecr.us-east-2.amazonaws.com/frontend
+    container_name: frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "9000:3000"
+    environment:
+      - PORT=3000
+      - SERVICE_BACKEND1=http://localhost:9010/api/message
+    networks:
+      - ms-network01
+
+  backend1:
+    image: 282865065290.dkr.ecr.us-east-2.amazonaws.com/backend1
+    container_name: backend1
+    build:
+      context: .
+      dockerfile: backend1/Dockerfile
+    ports:
+      - "9010:3010"
+    environment:
+      - PORT=3010
+      - SERVICE_BACKEND2=http://backend2:3020/api/message
+    networks:
+      - ms-network01
+      - ms-network02
+
+  backend2:
+    image: 282865065290.dkr.ecr.us-east-2.amazonaws.com/backend2
+    container_name: backend2
+    build:
+      context: .
+      dockerfile: backend2/Dockerfile
+    environment:
+      - PORT=3020
+    networks:
+      - ms-network02
+
+networks:
+  ms-network01:
+    name: ms-network01
+    driver: bridge
+  ms-network02:
+    name: ms-network02
+    driver: bridge
